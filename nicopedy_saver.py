@@ -242,7 +242,7 @@ def GetLatestID(fName):
         print("Error.")
 
     heads = subResult.split()
-    id = int(heads[2])
+    id = int(heads[-1])
 
     return id
 
