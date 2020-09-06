@@ -18,6 +18,7 @@ SCRAPING_INTERVAL_TIME = 3      # スクレイピング時の休み時間
 
 # ユーザ記事URLであることをマッチする確認用
 NICOPEDI_URL_HEAD_A = "https://dic.nicovideo.jp/a/"
+NICOPEDI_URL_HEAD_V = "https://dic.nicovideo.jp/v/"
 
 # ディレクトリの存在チェック。ない場合はmkdir
 def CheckCreateDirectory(location, dirName) :
@@ -33,6 +34,8 @@ def CheckCreateDirectory(location, dirName) :
 
 # メイン記事のページャー部分からスクレイピング対象になる掲示板URLを取得する（既に取得済みの場合はそのIDからスタート）
 def GetSearchTargetURLs(baseURL, latestId) :
+
+
 
     pageUrls = []
 
@@ -86,7 +89,7 @@ def GetSearchTargetURLs(baseURL, latestId) :
     startPage = latestId // RES_IN_SINGLEPAGE
 
     # 記事本体のURLと掲示板用URLは微妙に異なるため修正。
-    baseBbsUrl = baseURL.replace('/a/', '/b/a/')
+    baseBbsUrl = baseURL.replace('/a/', '/b/a/').replace('/v/','/b/v/')
 
     print(startPage * RES_IN_SINGLEPAGE, 'To', finalPage * RES_IN_SINGLEPAGE)
     # pprint(txts)
@@ -196,7 +199,7 @@ def GetAllResInPage(tgtUrl) :
 
         bbs_contentsFromURL=""
         # 「この絵を基にしています！」を除去
-        ilfrom=bObj('a',href=re.compile('^/b/a/'))
+        ilfrom=bObj('a',href=re.compile('^/b/a/|^/b/v/'))
         for x in ilfrom:
             if(x.getText() == 'この絵を基にしています！'):
                 bbs_contentsFromURL = "https://dic.nicovideo.jp"+x.get('href')
@@ -254,7 +257,7 @@ print_red = partial(print_colored, '31')
 
 # 入力したURLがニコニコ大百科内のものかチェック
 def IsValidURL(targetURL) :
-    isValid = targetURL.startswith(NICOPEDI_URL_HEAD_A)
+    isValid = targetURL.startswith(NICOPEDI_URL_HEAD_A) or targetURL.startswith(NICOPEDI_URL_HEAD_V)
     return isValid
 
 # メイン処理スタート -----------------------------------------------------------------
@@ -273,7 +276,7 @@ tgtArtUrl = args[1]
 # URLがニコ百科として不正な場合は終了
 if not IsValidURL(tgtArtUrl) :
     print_red('This is not valid URL.', is_bold=True)
-    print('Target URL should be under', NICOPEDI_URL_HEAD_A)
+    print('Target URL should be under', NICOPEDI_URL_HEAD_A,'or',NICOPEDI_URL_HEAD_V)
     sys.exit(0)
 
 # ログ出力用ディレクトリを取得する。なければ作る。パーミッションについては考慮していない。
@@ -286,7 +289,9 @@ art_soup = BeautifulSoup(art_req.content, 'html.parser')
 # 取得したデータからカテゴリー要素を削除
 art_soup.find('span', class_='st-label_title-category').decompose()
 # よみがな部分を削除
-art_soup.find('div', class_='a-title-yomi').decompose()
+yomi = art_soup.find('div', class_='a-title-yomi')
+if(yomi is not None):
+    yomi.decompose()
 # ほめる・広告部分を削除
 homeru=art_soup.find('ul', class_='article-title-counter')
 if( homeru is not None):
