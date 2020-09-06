@@ -407,7 +407,7 @@ print()
 tmpHeadFile = tmpDir + '/' + nowstamp + '.head' + '.tmp'
 
 with open(tmpHeadFile, 'w') as writer:
-    metaInfo = [pageTitle, str(now.strftime("%Y-%m-%d/%H:%M")), str(latestId)]
+    metaInfo = [pageTitle, tgtArtUrl, str(now.strftime("%Y-%m-%d/%H:%M")), str(latestId)]
     metaInfoLine = ' '.join(metaInfo)
     TeeOutput(metaInfoLine, writer)
 # --------------------------------------------------------------
