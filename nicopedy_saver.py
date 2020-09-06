@@ -19,6 +19,7 @@ SCRAPING_INTERVAL_TIME = 3      # スクレイピング時の休み時間
 # ユーザ記事URLであることをマッチする確認用
 NICOPEDI_URL_HEAD_A = "https://dic.nicovideo.jp/a/"
 NICOPEDI_URL_HEAD_V = "https://dic.nicovideo.jp/v/"
+NICOPEDI_URL_HEAD_U = "https://dic.nicovideo.jp/u/"
 
 # ディレクトリの存在チェック。ない場合はmkdir
 def CheckCreateDirectory(location, dirName) :
@@ -89,7 +90,7 @@ def GetSearchTargetURLs(baseURL, latestId) :
     startPage = latestId // RES_IN_SINGLEPAGE
 
     # 記事本体のURLと掲示板用URLは微妙に異なるため修正。
-    baseBbsUrl = baseURL.replace('/a/', '/b/a/').replace('/v/','/b/v/')
+    baseBbsUrl = baseURL.replace('/a/', '/b/a/').replace('/v/','/b/v/').replace('/u/','/b/u/')
 
     print(startPage * RES_IN_SINGLEPAGE, 'To', finalPage * RES_IN_SINGLEPAGE)
     # pprint(txts)
@@ -199,7 +200,7 @@ def GetAllResInPage(tgtUrl) :
 
         bbs_contentsFromURL=""
         # 「この絵を基にしています！」を除去
-        ilfrom=bObj('a',href=re.compile('^/b/a/|^/b/v/'))
+        ilfrom=bObj('a',href=re.compile('^/b/[auv]'))
         for x in ilfrom:
             if(x.getText() == 'この絵を基にしています！'):
                 bbs_contentsFromURL = "https://dic.nicovideo.jp"+x.get('href')
@@ -257,8 +258,24 @@ print_red = partial(print_colored, '31')
 
 # 入力したURLがニコニコ大百科内のものかチェック
 def IsValidURL(targetURL) :
-    isValid = targetURL.startswith(NICOPEDI_URL_HEAD_A) or targetURL.startswith(NICOPEDI_URL_HEAD_V)
+    isValid = targetURL.startswith(NICOPEDI_URL_HEAD_A) or targetURL.startswith(NICOPEDI_URL_HEAD_V) or targetURL.startswith(NICOPEDI_URL_HEAD_U)
     return isValid
+# 入力したURLがユーザ記事かチェック
+def IsUserDicURL(targetURL) :
+    isUser = targetURL.startswith(NICOPEDI_URL_HEAD_U)
+    return isUser
+# 入力したURLが動画記事かチェック
+def IsVideoDicURL(targetURL) :
+    isVideo = targetURL.startswith(NICOPEDI_URL_HEAD_V)
+    return isVideo
+# 入力したURLからユーザ名を取得
+def UserIdFromURL(targetURL) :
+    UserId = targetURL.replace(NICOPEDI_URL_HEAD_U,"")
+    return UserId
+# 入力したURLから動画IDを取得
+def VideoIdFromURL(targetURL) :
+    VideoId = targetURL.replace(NICOPEDI_URL_HEAD_V,"")
+    return VideoId
 
 # メイン処理スタート -----------------------------------------------------------------
 
@@ -276,8 +293,11 @@ tgtArtUrl = args[1]
 # URLがニコ百科として不正な場合は終了
 if not IsValidURL(tgtArtUrl) :
     print_red('This is not valid URL.', is_bold=True)
-    print('Target URL should be under', NICOPEDI_URL_HEAD_A,'or',NICOPEDI_URL_HEAD_V)
+    print('Target URL should be under', NICOPEDI_URL_HEAD_A,'or',NICOPEDI_URL_HEAD_V,'or',NICOPEDI_URL_HEAD_U)
     sys.exit(0)
+
+isVideo= IsVideoDicURL(tgtArtUrl)
+isUser = IsUserDicURL(tgtArtUrl)
 
 # ログ出力用ディレクトリを取得する。なければ作る。パーミッションについては考慮していない。
 logDir = CheckCreateDirectory('.', LOG_STORE_DIRECTORY)
@@ -319,8 +339,15 @@ pageTitle = pageTitle.replace('>','＞')
 pageTitle = pageTitle.replace('|','｜')
 print('[',pageTitle,']')
 
-# ログファイル名は「(記事タイトル).log」
-pediLogFileName = pageTitle + ".log"
+# ログファイル名は「(記事タイトル).log」「(ユーザID).user.log」「(動画ID).video.log」
+pediLogFileName = ".log"
+if(isUser):
+    pediLogFileName = UserIdFromURL(tgtArtUrl)+".user"+pediLogFileName
+elif(isVideo):
+    pediLogFileName = VideoIdFromURL(tgtArtUrl)+".video"+pediLogFileName
+else:
+    pediLogFileName = pageTitle+pediaLogFileName
+
 pediLogFileName = logDir + '/' + pediLogFileName
 
 # Unixタイム(ミリ秒)を一時ファイルの名称として使用する
