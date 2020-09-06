@@ -346,7 +346,7 @@ if(isUser):
 elif(isVideo):
     pediLogFileName = VideoIdFromURL(tgtArtUrl)+".video"+pediLogFileName
 else:
-    pediLogFileName = pageTitle+pediaLogFileName
+    pediLogFileName = pageTitle+pediLogFileName
 
 pediLogFileName = logDir + '/' + pediLogFileName
 
